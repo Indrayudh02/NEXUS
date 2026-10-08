@@ -320,11 +320,11 @@ function graphView(height = 420, compact = false) {
       const ux = dx / distance;
       const uy = dy / distance;
       const isUnknown = rel.status === 'unknown';
-      const strokeColor = rel.status === 'supported' ? '#8bbb92' : rel.status === 'contradiction' ? '#d96b6b' : rel.status === 'weak' ? '#d8b866' : '#2a835f';
+      const strokeColor = rel.status === 'supported' ? '#34d399' : rel.status === 'contradiction' ? '#fb7185' : rel.status === 'weak' ? '#fbbf24' : '#94a3b8';
       const label = rel.status === 'unknown' ? '???' : rel.type;
       const strokeWidth = rel.status === 'unknown' ? 2.6 : 1.8;
       const dash = rel.status === 'unknown' ? 'stroke-dasharray="8 5"' : '';
-      const textColor = rel.status === 'unknown' ? '#8bbb92' : '#c1d3ca';
+      const textColor = rel.status === 'unknown' ? '#94a3b8' : '#cbd5e1';
 
       return `
         <line class="graph-edge${isUnknown ? ' graph-edge-unknown' : ''}" ${dash} x1="${x1 + ux * 40}" y1="${y1 + uy * 20}" x2="${x2 - ux * 40}" y2="${y2 - uy * 20}" stroke="${strokeColor}" stroke-width="${strokeWidth}" marker-end="url(#edgeArrow)" />
@@ -346,7 +346,7 @@ function graphView(height = 420, compact = false) {
 
   return `<svg viewBox="0 0 760 460" style="width:100%;height:${height}px;display:block">
     <defs>
-      <marker id="edgeArrow" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#8bbb92"/></marker>
+      <marker id="edgeArrow" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#4f7cff"/></marker>
     </defs>
     ${edgeMarkup}
     ${nodes}
@@ -398,7 +398,7 @@ function renderOverview() {
       ${stat('Documents', counts.documents ?? S.documents.length)}
       ${stat('Concepts', counts.concepts ?? S.concepts.length)}
       ${stat('Relationships', counts.relationships ?? S.relationships.length)}
-      ${stat('Open gaps', counts.gaps ?? S.gaps.length, '#8bbb92')}
+      ${stat('Open gaps', counts.gaps ?? S.gaps.length, '#4f7cff')}
     </div>
     <div class="content-grid two-col">
       <div class="card graph-card">
@@ -410,7 +410,7 @@ function renderOverview() {
           <span style="color:var(--ok)">supports</span>
           <span style="color:var(--bad)">contradiction</span>
           <span style="color:var(--wa)">weak</span>
-          <span style="color:#8bbb92">unknown</span>
+          <span style="color:#94a3b8">unknown</span>
         </div>
         <div style="margin-top:12px"><button class="btn secondary" data-action="go-graph">Open full graph</button></div>
       </div>
