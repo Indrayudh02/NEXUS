@@ -320,14 +320,14 @@ function graphView(height = 420, compact = false) {
       const ux = dx / distance;
       const uy = dy / distance;
       const isUnknown = rel.status === 'unknown';
-      const strokeColor = rel.status === 'supported' ? '#3ecf8e' : rel.status === 'contradiction' ? '#ff5c6c' : rel.status === 'weak' ? '#f5b942' : '#7c6cff';
+      const strokeColor = rel.status === 'supported' ? '#8bbb92' : rel.status === 'contradiction' ? '#d96b6b' : rel.status === 'weak' ? '#d8b866' : '#2a835f';
       const label = rel.status === 'unknown' ? '???' : rel.type;
       const strokeWidth = rel.status === 'unknown' ? 2.6 : 1.8;
       const dash = rel.status === 'unknown' ? 'stroke-dasharray="8 5"' : '';
-      const textColor = rel.status === 'unknown' ? '#a89dff' : '#d7d7df';
+      const textColor = rel.status === 'unknown' ? '#8bbb92' : '#c1d3ca';
 
       return `
-        <line ${dash} x1="${x1 + ux * 40}" y1="${y1 + uy * 20}" x2="${x2 - ux * 40}" y2="${y2 - uy * 20}" stroke="${strokeColor}" stroke-width="${strokeWidth}" marker-end="url(#edgeArrow)" />
+        <line class="graph-edge${isUnknown ? ' graph-edge-unknown' : ''}" ${dash} x1="${x1 + ux * 40}" y1="${y1 + uy * 20}" x2="${x2 - ux * 40}" y2="${y2 - uy * 20}" stroke="${strokeColor}" stroke-width="${strokeWidth}" marker-end="url(#edgeArrow)" />
         <text x="${mx}" y="${my - 6}" text-anchor="middle" style="fill:${textColor};font-size:${rel.status === 'unknown' ? 14 : 11}px;font-weight:${rel.status === 'unknown' ? 700 : 500}">${escapeHtml(label)}</text>
       `;
     })
@@ -346,7 +346,7 @@ function graphView(height = 420, compact = false) {
 
   return `<svg viewBox="0 0 760 460" style="width:100%;height:${height}px;display:block">
     <defs>
-      <marker id="edgeArrow" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#727285"/></marker>
+      <marker id="edgeArrow" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#8bbb92"/></marker>
     </defs>
     ${edgeMarkup}
     ${nodes}
@@ -370,7 +370,7 @@ function renderEvidenceCard(item) {
 }
 
 function renderGapCard(gap) {
-  return `<div class="card gap-panel">
+  return `<div class="card gap-panel interactive-card">
     <div class="row compact">
       <strong class="danger-text">${escapeHtml(gap.type)}</strong>
       ${badge('secondary', escapeHtml(gap.priority))}
@@ -398,7 +398,7 @@ function renderOverview() {
       ${stat('Documents', counts.documents ?? S.documents.length)}
       ${stat('Concepts', counts.concepts ?? S.concepts.length)}
       ${stat('Relationships', counts.relationships ?? S.relationships.length)}
-      ${stat('Open gaps', counts.gaps ?? S.gaps.length, '#a89dff')}
+      ${stat('Open gaps', counts.gaps ?? S.gaps.length, '#8bbb92')}
     </div>
     <div class="content-grid two-col">
       <div class="card graph-card">
@@ -410,7 +410,7 @@ function renderOverview() {
           <span style="color:var(--ok)">supports</span>
           <span style="color:var(--bad)">contradiction</span>
           <span style="color:var(--wa)">weak</span>
-          <span style="color:#a89dff">unknown</span>
+          <span style="color:#8bbb92">unknown</span>
         </div>
         <div style="margin-top:12px"><button class="btn secondary" data-action="go-graph">Open full graph</button></div>
       </div>
@@ -536,11 +536,13 @@ function renderSources() {
   return head('Sources', 'Uploaded documents and processing state.', '<button class="btn secondary" id="upload-button">+ Add sources</button>') + `
     <input id="document-upload" type="file" accept=".pdf,application/pdf" multiple style="display:none" />
     <div class="source-grid">
-      ${S.documents.map((doc) => `
+      ${S.documents.map((doc) => {
+        const isProcessing = ['UPLOADING', 'PROCESSING', 'PARSING'].includes(String(doc.status).toUpperCase());
+        return `
         <div class="card source-card">
           <div class="row compact">
             <strong>${escapeHtml(doc.name)}</strong>
-              <span class="badge ${['READY', 'Processed'].includes(doc.status) ? 'success' : doc.status === 'FAILED' ? 'danger' : 'accent'}">${escapeHtml(doc.status)}</span>
+              <span class="badge ${['READY', 'Processed'].includes(doc.status) ? 'success' : doc.status === 'FAILED' ? 'danger' : 'accent'}${isProcessing ? ' is-processing' : ''}">${escapeHtml(doc.status)}</span>
           </div>
             <div class="muted small">${escapeHtml(doc.pages || 0)} pages${doc.demo ? ' · DEMO DATA' : ''}${doc.error ? ` · ${escapeHtml(doc.error)}` : ''}</div>
           <div class="list-row"><span class="muted">Concepts</span><span>${doc.concepts}</span></div>
@@ -548,7 +550,8 @@ function renderSources() {
           <div class="list-row"><span class="muted">Evidence</span><span>${doc.evidence}</span></div>
           ${!doc.demo && doc.status === 'FAILED' ? `<div class="row compact actions"><button class="btn secondary" data-action="retry-document" data-document-id="${escapeHtml(doc.id)}">Retry processing</button></div>` : ''}
         </div>
-      `).join('')}
+      `;
+      }).join('')}
     </div>
   `;
 }
@@ -573,9 +576,12 @@ function renderInvestigation() {
   const verificationStatus = investigation.status || 'UNVERIFIED';
   const confidence = APP_MODE === 'demo' ? 68 : Math.round((investigation.confidence || 0) * 100);
   const completed = S.pipelineStep >= 7;
+  const isRunning = APP_MODE === 'demo'
+    ? Boolean(S.activeInvestigation) && S.pipelineStep < 7 && S.status.type === 'info'
+    : investigation.status === 'RUNNING';
 
   return head('Investigation', `${escapeHtml(investigation.id)} · ${escapeHtml(investigation.gap)}`, `<span class="badge ${S.pipelineStep >= 7 ? 'success' : 'accent'}">${S.pipelineStep >= 7 ? 'Complete' : 'Running'}</span>`) + `
-    <div class="card investigation-card">
+    <div class="card investigation-card${isRunning ? ' is-running' : ''}">
       <div class="muted small">Current question</div>
       <h2>“${escapeHtml(investigation.question || 'Generating research question from the selected gap…')}”</h2>
       <div class="pipeline">
@@ -1016,12 +1022,16 @@ function updateKnowledgeGraph() {
   render();
 }
 
+let LAST_RENDERED_VIEW = null;
+
 function render() {
   updateNav();
+  const viewChanged = LAST_RENDERED_VIEW !== S.view;
+  LAST_RENDERED_VIEW = S.view;
   const modeBanner = APP_MODE === 'demo'
-    ? '<div class="card status-banner status-info">DEMO MODE · Seeded sample data and simulated investigation</div>'
-    : '<div class="card status-banner status-success">LIVE KNOWLEDGE MODE · Backend-backed source documents and evidence</div>';
-  $('#m').innerHTML = `${modeBanner}${renderStatusBanner()}${renderCurrentScreen()}`;
+    ? '<div class="card status-banner status-info mode-banner">DEMO MODE · Seeded sample data and simulated investigation</div>'
+    : '';
+  $('#m').innerHTML = `<div class="view-content${viewChanged ? ' view-enter' : ''}">${modeBanner}${renderStatusBanner()}${renderCurrentScreen()}</div>`;
   bindEvents();
 }
 
